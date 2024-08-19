@@ -1253,78 +1253,72 @@ function ElementFunction:AddDropDownToggle(DropDownToggleConfig)
 
     local MaxElements = 5
 
-    local DropDownList = MakeElement("List")
+    local DropDownList = Instance.new("Frame")
+    DropDownList.BackgroundTransparency = 1
+    DropDownList.Size = UDim2.new(1, 0, 0, #DropDownToggleConfig.Options * 30) -- Adjust height based on the number of options
+    DropDownList.Parent = nil -- We will set the parent later
 
-    local DropDownContainer = AddThemeObject(SetProps(SetChildren(MakeElement("ScrollFrame", Color3.fromRGB(40, 40, 40), 4), {
-        DropDownList
-    }), {
-        Parent = ItemParent,
-        Position = UDim2.new(0, 0, 0, 38),
-        Size = UDim2.new(1, 0, 0, 0),  -- Initially hidden
-        ClipsDescendants = true
-    }), "Divider")
+    local DropDownContainer = Instance.new("ScrollingFrame")
+    DropDownContainer.Size = UDim2.new(1, 0, 0, 0) -- Initially hidden
+    DropDownContainer.Position = UDim2.new(0, 0, 0, 38)
+    DropDownContainer.BackgroundTransparency = 1
+    DropDownContainer.ClipsDescendants = true
+    DropDownContainer.ScrollBarThickness = 4
+    DropDownContainer.Parent = ItemParent
 
-    local Click = SetProps(MakeElement("Button"), {
-        Size = UDim2.new(1, 0, 1, 0)
-    })
+    local Click = Instance.new("TextButton")
+    Click.Size = UDim2.new(1, 0, 1, 0)
+    Click.BackgroundTransparency = 1
 
-    local DropDownFrame = AddThemeObject(SetChildren(SetProps(MakeElement("RoundFrame", Color3.fromRGB(255, 255, 255), 0, 5), {
-        Size = UDim2.new(1, 0, 0, 38),
-        Parent = ItemParent,
-        ClipsDescendants = true
-    }), {
-        DropDownContainer,
-        SetProps(SetChildren(MakeElement("TFrame"), {
-            AddThemeObject(SetProps(MakeElement("Label", DropDownToggleConfig.Name, 15), {
-                Size = UDim2.new(1, -12, 1, 0),
-                Position = UDim2.new(0, 12, 0, 0),
-                Font = Enum.Font.GothamBold,
-                Name = "Content"
-            }), "Text"),
-            AddThemeObject(SetProps(MakeElement("Image", "rbxassetid://7072706796"), {
-                Size = UDim2.new(0, 20, 0, 20),
-                AnchorPoint = Vector2.new(0, 0.5),
-                Position = UDim2.new(1, -30, 0.5, 0),
-                ImageColor3 = Color3.fromRGB(240, 240, 240),
-                Name = "Ico"
-            }), "TextDark"),
-            AddThemeObject(SetProps(MakeElement("Frame"), {
-                Size = UDim2.new(1, 0, 0, 1),
-                Position = UDim2.new(0, 0, 1, -1),
-                Name = "Line",
-                Visible = false
-            }), "Stroke"), 
-            Click
-        }), {
-            Size = UDim2.new(1, 0, 0, 38),
-            ClipsDescendants = true,
-            Name = "F"
-        }),
-        AddThemeObject(MakeElement("Stroke"), "Stroke"),
-        MakeElement("Corner")
-    }), "Second")
+    local DropDownFrame = Instance.new("Frame")
+    DropDownFrame.Size = UDim2.new(1, 0, 0, 38)
+    DropDownFrame.ClipsDescendants = true
+    DropDownFrame.Parent = ItemParent
 
-    AddConnection(DropDownList:GetPropertyChangedSignal("AbsoluteContentSize"), function()
-        DropDownContainer.CanvasSize = UDim2.new(0, 0, 0, DropDownList.AbsoluteContentSize.Y)
-    end)
+    local Label = Instance.new("TextLabel")
+    Label.Text = DropDownToggleConfig.Name
+    Label.Font = Enum.Font.GothamBold
+    Label.TextSize = 15
+    Label.Size = UDim2.new(1, -12, 1, 0)
+    Label.Position = UDim2.new(0, 12, 0, 0)
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = DropDownFrame
+
+    local Icon = Instance.new("ImageLabel")
+    Icon.Size = UDim2.new(0, 20, 0, 20)
+    Icon.AnchorPoint = Vector2.new(0, 0.5)
+    Icon.Position = UDim2.new(1, -30, 0.5, 0)
+    Icon.Image = "rbxassetid://7072706796"
+    Icon.ImageColor3 = Color3.fromRGB(240, 240, 240)
+    Icon.Parent = DropDownFrame
+
+    local Line = Instance.new("Frame")
+    Line.Size = UDim2.new(1, 0, 0, 1)
+    Line.Position = UDim2.new(0, 0, 1, -1)
+    Line.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    Line.Visible = false
+    Line.Parent = DropDownFrame
+
+    Click.Parent = DropDownFrame
 
     local function AddOptions(Options)
         for _, Option in pairs(Options) do
-            local Toggle = self:AddToggle({
+            local ToggleButton = self:AddToggle({
                 Name = Option,
                 Default = false,
                 Callback = function(Value)
                     DropDownToggleConfig.Callback(Option, Value)
                 end    
             })
-            Toggle:SetParent(DropDownContainer)
-            DropDownToggle.Flags[Option] = Toggle
+            ToggleButton.Parent = DropDownList -- Parent the toggle to the dropdown list
+            DropDownToggle.Flags[Option] = ToggleButton
         end
+        DropDownList.Parent = DropDownContainer -- Set parent after all toggles are added
     end
 
     function DropDownToggle:Refresh(Options, Delete)
         if Delete then
-            for _,v in pairs(DropDownToggle.Flags) do
+            for _, v in pairs(DropDownToggle.Flags) do
                 v:Destroy()
             end    
             table.clear(DropDownToggle.Options)
@@ -1334,13 +1328,12 @@ function ElementFunction:AddDropDownToggle(DropDownToggleConfig)
         AddOptions(DropDownToggle.Options)
     end
 
-    AddConnection(Click.MouseButton1Click, function()
+    Click.MouseButton1Click:Connect(function()
         DropDownToggle.Toggled = not DropDownToggle.Toggled
-        DropDownFrame.F.Line.Visible = DropDownToggle.Toggled
-        TweenService:Create(DropDownFrame.F.Ico,TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),{Rotation = DropDownToggle.Toggled and 180 or 0}):Play()
-
-        local newSize = UDim2.new(1, 0, 0, DropDownToggle.Toggled and DropDownList.AbsoluteContentSize.Y or 0)
-        TweenService:Create(DropDownContainer, TweenInfo.new(.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = newSize}):Play()
+        Line.Visible = DropDownToggle.Toggled
+        local newSize = UDim2.new(1, 0, 0, DropDownToggle.Toggled and DropDownList.AbsoluteSize.Y or 0)
+        DropDownContainer:TweenSize(newSize, Enum.EasingDirection.Out, Enum.EasingStyle.Quad, 0.15, true)
+        Icon.Rotation = DropDownToggle.Toggled and 180 or 0
     end)
 
     DropDownToggle:Refresh(DropDownToggle.Options, false)
